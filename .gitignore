@@ -7,3 +7,6 @@ logs/
 *.pyo
 *.pyd
 .env
+node_modules/
+build/
+.env
