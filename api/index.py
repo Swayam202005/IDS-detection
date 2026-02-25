@@ -4,6 +4,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Flask running on Vercel 🚀"
+    return "Flask Running on Vercel 🚀"
 
-handler = app
+# IMPORTANT: expose WSGI app correctly
+app = app
