@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Model Manager{% endblock %}
+{% block page_title %}<i class="bi bi-cpu-fill me-2" style="color:var(--accent)"></i>Model Management{% endblock %}
+
+{% block content %}
+
+{% if not model_exists %}
+<div class="ids-card mb-4" style="border-color:rgba(255,184,0,0.3)">
+  <div style="display:flex;align-items:center;gap:12px;color:var(--accent4)">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size:20px"></i>
+    <div>
+      <div style="font-weight:700;margin-bottom:2px">No trained model found</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">
+        Run <code style="color:var(--accent)">python model_training.py</code> to train the model, or click "Retrain Model" below.
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Metrics Cards -->
+{% if metrics %}
+<div class="row g-3 mb-4">
+  {% set res = metrics.results.get(metrics.best_model, {}) %}
+  <div class="col-6 col-lg-3">
+    <div class="stat-card green">
+      <div class="stat-icon"><i class="bi bi-bullseye"></i></div>
+      <div class="stat-num">{{ res.accuracy }}%</div>
+      <div class="stat-label">Accuracy</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card blue">
+      <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="stat-num">{{ res.precision }}%</div>
+      <div class="stat-label">Precision</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card yellow">
+      <div class="stat-icon"><i class="bi bi-arrow-repeat"></i></div>
+      <div class="stat-num">{{ res.recall }}%</div>
+      <div class="stat-label">Recall</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card red">
+      <div class="stat-icon"><i class="bi bi-trophy-fill"></i></div>
+      <div class="stat-num">{{ res.f1_score }}%</div>
+      <div class="stat-label">F1 Score</div>
+    </div>
+  </div>
+</div>
+
+<!-- Best model info -->
+<div class="ids-card mb-4">
+  <div class="card-header-ids">
+    <span><i class="bi bi-star-fill me-1" style="color:var(--accent4)"></i> BEST MODEL</span>
+  </div>
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div style="font-family:'JetBrains Mono',monospace">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">SELECTED MODEL</div>
+      <div style="font-size:18px;font-weight:700;color:var(--accent)">{{ metrics.best_model }}</div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">ATTACK CLASSES</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        {% for cls in metrics.classes %}
+        <span class="badge-ids badge-attack" style="font-size:9px">{{ cls }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- All model comparison table -->
+<div class="ids-card mb-4">
+  <div class="card-header-ids"><span><i class="bi bi-table me-1"></i> MODEL COMPARISON</span></div>
+  <div class="ids-table-wrap">
+    <table class="ids-table">
+      <thead>
+        <tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1 Score</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for name, r in metrics.results.items() %}
+        <tr>
+          <td style="color:#fff;font-weight:600">{{ name }}</td>
+          <td class="mono">{{ r.accuracy }}%</td>
+          <td class="mono">{{ r.precision }}%</td>
+          <td class="mono">{{ r.recall }}%</td>
+          <td class="mono">{{ r.f1_score }}%</td>
+          <td>
+            {% if name == metrics.best_model %}
+              <span class="badge-ids badge-normal"><i class="bi bi-check-circle-fill me-1"></i>Best</span>
+            {% else %}
+              <span class="badge-ids" style="background:var(--panel2);color:var(--muted);border:1px solid var(--border)">Other</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-6">
+    <div class="ids-card">
+      <div class="card-header-ids"><span><i class="bi bi-grid me-1"></i> CONFUSION MATRIX</span></div>
+      <div style="text-align:center;padding:12px">
+        <img src="{{ url_for('static', filename='img/confusion_matrix.png') }}"
+             alt="Confusion Matrix"
+             style="max-width:100%;border-radius:6px;border:1px solid var(--border)"
+             onerror="this.parentElement.innerHTML='<div class=empty-state><i class=bi bi-image me-2></i>Run training to generate this chart.</div>'">
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-6">
+    <div class="ids-card">
+      <div class="card-header-ids"><span><i class="bi bi-list-ol me-1"></i> FEATURE IMPORTANCE</span></div>
+      <div style="text-align:center;padding:12px">
+        <img src="{{ url_for('static', filename='img/feature_importance.png') }}"
+             alt="Feature Importance"
+             style="max-width:100%;border-radius:6px;border:1px solid var(--border)"
+             onerror="this.parentElement.innerHTML='<div class=empty-state><i class=bi bi-image me-2></i>Run training to generate this chart.</div>'">
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="ids-card mb-4">
+  <div class="empty-state">
+    <i class="bi bi-cpu" style="font-size:36px;display:block;margin-bottom:12px;color:var(--muted)"></i>
+    No model metrics found.<br>
+    <span style="font-size:11px">Train the model to see performance results here.</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- Retrain -->
+<div class="ids-card">
+  <div class="card-header-ids"><span><i class="bi bi-arrow-clockwise me-1"></i> RETRAIN MODEL</span></div>
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">
+      Retrains all 3 models (Random Forest, Decision Tree, Logistic Regression) on synthetic data.
+      Takes 30–60 seconds. The best model is automatically selected and saved.
+    </div>
+    <form action="{{ url_for('retrain_model') }}" method="POST"
+          onsubmit="return confirm('Start model retraining? This may take a minute.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn-ids-sm" style="color:var(--accent);border-color:rgba(0,200,255,0.3);padding:8px 16px">
+        <i class="bi bi-arrow-clockwise me-1"></i> Retrain Model
+      </button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

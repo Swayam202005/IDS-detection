@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AI-IDS{% endblock %} — Intrusion Detection System</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+
+  <!-- Logo -->
+  <div class="sidebar-logo">
+    <div class="logo-icon">
+      <i class="bi bi-shield-shaded"></i>
+    </div>
+    <div>
+      <div class="logo-text">AI-IDS</div>
+      <div class="logo-sub">v{{ app_version }}</div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">MONITORING</div>
+    <a href="{{ url_for('dashboard') }}"
+       class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+      <i class="bi bi-grid-1x2-fill"></i> <span>Dashboard</span>
+    </a>
+    <a href="{{ url_for('live_traffic') }}"
+       class="nav-link {% if request.endpoint == 'live_traffic' %}active{% endif %}">
+      <i class="bi bi-activity"></i> <span>Live Traffic</span>
+      <span class="nav-badge" id="liveBadge">LIVE</span>
+    </a>
+    <a href="{{ url_for('detection_logs') }}"
+       class="nav-link {% if request.endpoint == 'detection_logs' %}active{% endif %}">
+      <i class="bi bi-list-columns-reverse"></i> <span>Detection Logs</span>
+    </a>
+    <a href="{{ url_for('statistics') }}"
+       class="nav-link {% if request.endpoint == 'statistics' %}active{% endif %}">
+      <i class="bi bi-bar-chart-line-fill"></i> <span>Statistics</span>
+    </a>
+
+    <div class="nav-section-label mt-3">SYSTEM</div>
+    <a href="{{ url_for('user_activity') }}"
+       class="nav-link {% if request.endpoint == 'user_activity' %}active{% endif %}">
+      <i class="bi bi-person-lines-fill"></i> <span>User Activity</span>
+    </a>
+
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('model_management') }}"
+       class="nav-link {% if request.endpoint == 'model_management' %}active{% endif %}">
+      <i class="bi bi-cpu-fill"></i> <span>Model Manager</span>
+      <span class="nav-badge admin-badge">ADMIN</span>
+    </a>
+    <a href="{{ url_for('users_list') }}"
+       class="nav-link {% if request.endpoint == 'users_list' %}active{% endif %}">
+      <i class="bi bi-people-fill"></i> <span>Users</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <!-- User Card -->
+  <div class="sidebar-user">
+    <div class="user-avatar">{{ current_user.username[0].upper() }}</div>
+    <div class="user-info">
+      <div class="user-name">{{ current_user.username }}</div>
+      <div class="user-role">{{ current_user.role.upper() }}</div>
+    </div>
+    <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout">
+      <i class="bi bi-box-arrow-right"></i>
+    </a>
+  </div>
+</aside>
+
+<!-- ═══ MAIN CONTENT ═══════════════════════════════════════════════════════ -->
+<main class="main-content" id="mainContent">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+      <i class="bi bi-list"></i>
+    </button>
+    <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+    <div class="topbar-right">
+      <div class="system-clock" id="sysClock">--:--:--</div>
+      <div class="risk-pill" id="topRiskPill">
+        <span class="risk-dot"></span> Monitoring
+      </div>
+    </div>
+  </header>
+
+  <!-- Flash Messages -->
+  <div class="container-fluid px-4 pt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show ids-alert" role="alert">
+          <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-triangle{% elif category == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}-fill me-2"></i>
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Page Content -->
+  <div class="container-fluid px-4 pb-4">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<!-- Bootstrap JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script>
+  // Clock
+  function updateClock() {
+    document.getElementById("sysClock").textContent =
+      new Date().toLocaleTimeString("en-US", {hour12: false});
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Sidebar toggle
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+    document.getElementById("mainContent").classList.toggle("expanded");
+  }
+
+  // Risk pill update
+  function updateRiskPill() {
+    fetch("/api/risk-summary")
+      .then(r => r.json())
+      .then(d => {
+        const pill = document.getElementById("topRiskPill");
+        const dot  = pill.querySelector(".risk-dot");
+        if (!pill) return;
+        const last = d.last_risk || 0;
+        if (last >= 70) {
+          pill.className = "risk-pill risk-high";
+          pill.innerHTML = `<span class="risk-dot"></span> HIGH RISK`;
+        } else if (last >= 40) {
+          pill.className = "risk-pill risk-medium";
+          pill.innerHTML = `<span class="risk-dot"></span> MEDIUM RISK`;
+        } else {
+          pill.className = "risk-pill risk-low";
+          pill.innerHTML = `<span class="risk-dot"></span> Normal`;
+        }
+      }).catch(() => {});
+  }
+  setInterval(updateRiskPill, 8000);
+  updateRiskPill();
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

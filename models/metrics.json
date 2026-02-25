@@ -1,0 +1,30 @@
+{
+  "best_model": "Random Forest",
+  "results": {
+    "Random Forest": {
+      "accuracy": 21.0,
+      "precision": 20.91,
+      "recall": 21.0,
+      "f1_score": 20.93
+    },
+    "Decision Tree": {
+      "accuracy": 19.5,
+      "precision": 19.17,
+      "recall": 19.5,
+      "f1_score": 19.24
+    },
+    "Logistic Regression": {
+      "accuracy": 19.0,
+      "precision": 18.82,
+      "recall": 19.0,
+      "f1_score": 18.74
+    }
+  },
+  "classes": [
+    "DOS",
+    "NORMAL",
+    "PROBE",
+    "R2L",
+    "U2R"
+  ]
+}

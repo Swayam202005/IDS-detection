@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}<i class="bi bi-grid-1x2-fill me-2" style="color:var(--accent)"></i>Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ── STAT CARDS ──────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="stat-card blue">
+      <div class="stat-icon"><i class="bi bi-database-fill"></i></div>
+      <div class="stat-num" id="statTotal">{{ total_logs }}</div>
+      <div class="stat-label">Total Events</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card red">
+      <div class="stat-icon"><i class="bi bi-shield-x-fill"></i></div>
+      <div class="stat-num" id="statAttacks">{{ total_attacks }}</div>
+      <div class="stat-label">Attacks Detected</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card yellow">
+      <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div class="stat-num" id="statHighRisk">{{ high_risk }}</div>
+      <div class="stat-label">High Risk Events</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card green">
+      <div class="stat-icon"><i class="bi bi-shield-check-fill"></i></div>
+      <div class="stat-num" id="statNormal">{{ normal_count }}</div>
+      <div class="stat-label">Normal Traffic</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ROW 2: RISK METER + LIVE FEED + CHART ──────────────────── -->
+<div class="row g-3 mb-4">
+
+  <!-- Risk Level Meter (Feature 5) -->
+  <div class="col-12 col-xl-3">
+    <div class="ids-card h-100">
+      <div class="card-header-ids">
+        <span><i class="bi bi-speedometer2 me-1"></i> RISK LEVEL</span>
+        <span id="riskUpdated" style="font-size:9px">—</span>
+      </div>
+
+      <div class="risk-meter-wrap">
+        <!-- SVG Arc Meter -->
+        <svg viewBox="0 0 200 110" width="200" height="110">
+          <!-- BG arc -->
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1e2f3f" stroke-width="16" stroke-linecap="round"/>
+          <!-- Fill arc -->
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" id="riskArcFill"
+                stroke="#00e87a" stroke-width="16" stroke-linecap="round"
+                stroke-dasharray="251" stroke-dashoffset="251" style="transition:all 0.8s ease"/>
+          <!-- Center text -->
+          <text x="100" y="95" text-anchor="middle" fill="white" font-family="Syne" font-weight="800" font-size="26" id="riskNumSvg">0</text>
+          <text x="100" y="112" text-anchor="middle" fill="#4a6070" font-family="JetBrains Mono" font-size="9" id="riskLabelSvg">SAFE</text>
+        </svg>
+      </div>
+
+      <!-- Risk Bars -->
+      <div class="mt-3" id="riskBarsContainer">
+        <div class="risk-bar-wrap">
+          <div class="risk-bar-label"><span>HIGH RISK</span><span id="highPct">—</span></div>
+          <div class="risk-bar"><div class="risk-bar-fill high" id="highBar" style="width:0%"></div></div>
+        </div>
+        <div class="risk-bar-wrap">
+          <div class="risk-bar-label"><span>MEDIUM</span><span id="medPct">—</span></div>
+          <div class="risk-bar"><div class="risk-bar-fill medium" id="medBar" style="width:0%"></div></div>
+        </div>
+        <div class="risk-bar-wrap">
+          <div class="risk-bar-label"><span>LOW / NORMAL</span><span id="lowPct">—</span></div>
+          <div class="risk-bar"><div class="risk-bar-fill low" id="lowBar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Last detection -->
+      <div style="margin-top:16px;padding:10px;background:var(--bg2);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">
+        <div style="margin-bottom:2px;color:var(--accent);letter-spacing:1px">LAST DETECTION</div>
+        <div id="lastDetType" style="color:#fff;font-size:12px">—</div>
+        <div id="lastDetRisk" style="color:var(--muted)">Score: —</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Traffic Feed (Feature 1 preview) -->
+  <div class="col-12 col-xl-5">
+    <div class="ids-card h-100">
+      <div class="card-header-ids">
+        <span><span class="live-dot"></span> LIVE TRAFFIC FEED</span>
+        <a href="{{ url_for('live_traffic') }}" class="btn-ids-sm">View All</a>
+      </div>
+      <div class="ids-table-wrap" style="max-height:340px;overflow-y:auto">
+        <table class="ids-table" id="liveTable">
+          <thead>
+            <tr>
+              <th>Source IP</th>
+              <th>Destination</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Risk</th>
+            </tr>
+          </thead>
+          <tbody id="liveTableBody">
+            {% for log in recent %}
+            <tr>
+              <td>{{ log.source_ip }}</td>
+              <td>{{ log.dest_ip }}</td>
+              <td>{{ log.attack_type }}</td>
+              <td>
+                <span class="badge-ids badge-{{ log.classification|lower }}">
+                  {{ log.classification }}
+                </span>
+              </td>
+              <td>
+                <span class="badge-ids badge-{{ 'high' if log.risk_score >= 70 else ('medium' if log.risk_score >= 40 else 'low') }}">
+                  {{ log.risk_score }}%
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="empty-state">No data yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attack Distribution Chart (Feature 3) -->
+  <div class="col-12 col-xl-4">
+    <div class="ids-card h-100">
+      <div class="card-header-ids">
+        <span><i class="bi bi-pie-chart-fill me-1"></i> ATTACK DISTRIBUTION</span>
+        <a href="{{ url_for('statistics') }}" class="btn-ids-sm">Full Stats</a>
+      </div>
+      <div class="chart-wrap" style="height:300px">
+        <canvas id="attackPieChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ENGINE CONTROL (Admin) ─────────────────────────────────── -->
+{% if current_user.is_admin() %}
+<div class="row g-3">
+  <div class="col-12">
+    <div class="ids-card">
+      <div class="card-header-ids">
+        <span><i class="bi bi-cpu me-1"></i> DETECTION ENGINE</span>
+        <span id="engineStatus" class="badge-ids {{ 'badge-normal' if engine_running else 'badge-attack' }}">
+          {{ 'ACTIVE' if engine_running else 'STOPPED' }}
+        </span>
+      </div>
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);flex:1">
+          The simulation engine generates synthetic detection events. Start it to populate the dashboard with live data.
+        </div>
+        <button onclick="startEngine()" class="btn-ids-sm" id="btnStart"
+                {% if engine_running %}style="display:none"{% endif %}>
+          <i class="bi bi-play-fill"></i> Start Engine
+        </button>
+        <button onclick="stopEngine()" class="btn-ids-danger" id="btnStop"
+                {% if not engine_running %}style="display:none"{% endif %}>
+          <i class="bi bi-stop-fill"></i> Stop Engine
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script id="chartLabels" type="application/json">{{ chart_labels | safe }}</script>
+<script id="chartData"   type="application/json">{{ chart_data   | safe }}</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

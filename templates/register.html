@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — AI-IDS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="auth-page">
+  <div style="position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none"></div>
+
+  <div class="auth-box" style="max-width:460px">
+    <div class="auth-logo">
+      <div class="auth-logo-icon"><i class="bi bi-shield-shaded"></i></div>
+      <div>
+        <div class="auth-logo-text">AI-IDS</div>
+        <div class="auth-logo-sub">INTRUSION DETECTION SYSTEM</div>
+      </div>
+    </div>
+
+    <div class="auth-title">Create Account</div>
+    <div class="auth-subtitle">REGISTER A NEW USER</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} ids-alert mb-3 py-2" style="font-size:12px">
+        <i class="bi bi-exclamation-circle-fill me-2"></i>{{ msg }}
+      </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('register') }}" id="regForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="row g-3 mb-3">
+        <div class="col-6">
+          <label class="ids-label">Username</label>
+          <input type="text" name="username" class="ids-input"
+                 placeholder="analyst01" required minlength="3"
+                 value="{{ username|default('') }}" id="usernameField">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;margin-top:4px" id="usernameHint">&nbsp;</div>
+        </div>
+        <div class="col-6">
+          <label class="ids-label">Role</label>
+          <select name="role" class="ids-input ids-select">
+            <option value="user">User / Analyst</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="ids-label">Email Address</label>
+        <input type="email" name="email" class="ids-input"
+               placeholder="you@company.com" required
+               value="{{ email|default('') }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="ids-label">Password</label>
+        <input type="password" name="password" class="ids-input"
+               placeholder="Min 8 chars, 1 uppercase, 1 number"
+               required minlength="8" id="pwField"
+               oninput="checkStrength(this.value)">
+        <div class="pw-strength"><div class="pw-strength-bar" id="strengthBar"></div></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px" id="strengthLabel">STRENGTH —</div>
+      </div>
+
+      <div class="mb-4">
+        <label class="ids-label">Confirm Password</label>
+        <input type="password" name="confirm_password" class="ids-input"
+               placeholder="Repeat password"
+               required minlength="8" id="confirmField"
+               oninput="checkMatch()">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;margin-top:4px" id="matchHint">&nbsp;</div>
+      </div>
+
+      <button type="submit" class="btn-ids-primary mb-4" id="submitBtn">
+        <i class="bi bi-person-plus-fill me-2"></i> CREATE ACCOUNT
+      </button>
+
+      <div class="text-center">
+        <a href="{{ url_for('login') }}" class="auth-link">
+          Already have an account? <span>Sign in &rarr;</span>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function checkStrength(pw) {
+  var bar   = document.getElementById("strengthBar");
+  var label = document.getElementById("strengthLabel");
+  var score = 0;
+  if (pw.length >= 8)            score++;
+  if (pw.length >= 12)           score++;
+  if (/[A-Z]/.test(pw))         score++;
+  if (/[0-9]/.test(pw))         score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  var levels = [
+    { w:"0%",   c:"transparent",       t:"STRENGTH —" },
+    { w:"25%",  c:"#ff3a5c",           t:"STRENGTH: WEAK" },
+    { w:"50%",  c:"#ff7a00",           t:"STRENGTH: FAIR" },
+    { w:"75%",  c:"#ffb800",           t:"STRENGTH: GOOD" },
+    { w:"100%", c:"#00e87a",           t:"STRENGTH: STRONG" },
+  ];
+  var l = levels[Math.min(score, 4)];
+  bar.style.width      = l.w;
+  bar.style.background = l.c;
+  bar.style.boxShadow  = l.c !== "transparent" ? "0 0 6px " + l.c : "none";
+  label.style.color    = l.c === "transparent" ? "var(--muted)" : l.c;
+  label.textContent    = l.t;
+}
+
+function checkMatch() {
+  var pw    = document.getElementById("pwField").value;
+  var cf    = document.getElementById("confirmField").value;
+  var hint  = document.getElementById("matchHint");
+  var btn   = document.getElementById("submitBtn");
+  if (!cf) { hint.innerHTML = "&nbsp;"; return; }
+  if (pw === cf) {
+    hint.style.color = "#00e87a";
+    hint.textContent = "✓ Passwords match";
+    btn.disabled = false;
+  } else {
+    hint.style.color = "#ff3a5c";
+    hint.textContent = "✗ Passwords do not match";
+    btn.disabled = true;
+  }
+}
+
+// Username availability check
+var usernameTimer;
+document.getElementById("usernameField").addEventListener("input", function() {
+  clearTimeout(usernameTimer);
+  var val  = this.value.trim();
+  var hint = document.getElementById("usernameHint");
+  if (val.length < 3) { hint.innerHTML = "&nbsp;"; return; }
+  usernameTimer = setTimeout(function() {
+    fetch("/api/check-username?u=" + encodeURIComponent(val))
+      .then(r => r.json())
+      .then(d => {
+        hint.style.color = d.available ? "#00e87a" : "#ff3a5c";
+        hint.textContent = d.available ? "✓ Username available" : "✗ Username taken";
+      }).catch(() => {});
+  }, 400);
+});
+
+document.getElementById("regForm").addEventListener("submit", function(e) {
+  var pw = document.getElementById("pwField").value;
+  var cf = document.getElementById("confirmField").value;
+  if (pw !== cf) {
+    e.preventDefault();
+    document.getElementById("matchHint").textContent = "✗ Passwords do not match";
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Live Traffic{% endblock %}
+{% block page_title %}<span class="live-dot"></span> Live Traffic Monitoring{% endblock %}
+
+{% block content %}
+
+<div class="row g-3 mb-3">
+  <div class="col-12">
+    <div class="ids-card">
+      <div class="card-header-ids">
+        <span><i class="bi bi-activity me-1"></i> REAL-TIME DETECTION FEED</span>
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="lastRefresh">Auto-refresh: 3s</span>
+          {% if current_user.is_admin() %}
+          <button onclick="toggleEngine()" id="engineToggleBtn"
+                  class="btn-ids-sm" style="color:{% if engine_running %}var(--accent2){% else %}var(--accent3){% endif %}">
+            <i class="bi bi-{% if engine_running %}stop-fill{% else %}play-fill{% endif %}"></i>
+            {% if engine_running %}Stop{% else %}Start{% endif %} Engine
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Summary pills -->
+      <div class="d-flex gap-2 flex-wrap mb-3" id="summaryPills">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.2);border-radius:4px;color:var(--accent)">
+          Total: <strong id="pillTotal">—</strong>
+        </span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;background:rgba(255,58,92,0.08);border:1px solid rgba(255,58,92,0.2);border-radius:4px;color:var(--accent2)">
+          Attacks: <strong id="pillAttack">—</strong>
+        </span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;background:rgba(255,184,0,0.08);border:1px solid rgba(255,184,0,0.2);border-radius:4px;color:var(--accent4)">
+          Suspicious: <strong id="pillSuspicious">—</strong>
+        </span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;background:rgba(0,232,122,0.08);border:1px solid rgba(0,232,122,0.2);border-radius:4px;color:var(--accent3)">
+          Normal: <strong id="pillNormal">—</strong>
+        </span>
+      </div>
+
+      <div class="ids-table-wrap">
+        <table class="ids-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Timestamp</th>
+              <th>Source IP</th>
+              <th>Dest IP</th>
+              <th>Protocol</th>
+              <th>Src Port</th>
+              <th>Dst Port</th>
+              <th>Attack Type</th>
+              <th>Classification</th>
+              <th>Confidence</th>
+              <th>Risk Score</th>
+            </tr>
+          </thead>
+          <tbody id="liveBody">
+            <tr><td colspan="11" class="empty-state"><i class="bi bi-hourglass-split me-2"></i>Loading live data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- ✅ Safe JSON injection — no Jinja2 inside <script> blocks -->
+<script id="engineState" type="application/json">{{ engine_running | tojson }}</script>
+
+<script>
+(function() {
+  var isRunning = JSON.parse(document.getElementById("engineState").textContent || "false");
+
+  function clsClass(cls) {
+    if (cls === "Attack")     return "badge-attack";
+    if (cls === "Suspicious") return "badge-suspicious";
+    return "badge-normal";
+  }
+
+  function riskClass(s) {
+    return s >= 70 ? "high" : (s >= 40 ? "medium" : "low");
+  }
+
+  function buildRow(l) {
+    var ts = l.timestamp ? l.timestamp.substring(0,19) : "—";
+    return "<tr>" +
+      "<td class='mono'>" + l.id + "</td>" +
+      "<td class='mono' style='color:#fff'>" + (l.source_ip  || "—") + "</td>" +
+      "<td class='mono'>" + (l.dest_ip    || "—") + "</td>" +
+      "<td class='mono'>" + (l.protocol   || "—") + "</td>" +
+      "<td class='mono'>" + (l.source_port|| "—") + "</td>" +
+      "<td class='mono'>" + (l.dest_port  || "—") + "</td>" +
+      "<td><span class='badge-ids badge-attack' style='font-size:9px'>" + l.attack_type + "</span></td>" +
+      "<td><span class='badge-ids " + clsClass(l.classification) + "'>" + l.classification + "</span></td>" +
+      "<td class='mono'>" + l.confidence + "%</td>" +
+      "<td>" +
+        "<div style='display:flex;align-items:center;gap:6px'>" +
+          "<div style='flex:1;height:4px;background:var(--border);border-radius:2px;min-width:50px'>" +
+            "<div style='height:100%;width:" + l.risk_score + "%;background:var(--accent" + (l.risk_score>=70?'2':l.risk_score>=40?'4':'3') + ");border-radius:2px;transition:width 0.5s'></div>" +
+          "</div>" +
+          "<span class='mono' style='font-size:11px'>" + l.risk_score + "</span>" +
+        "</div>" +
+      "</td>" +
+      "</tr>";
+  }
+
+  function refresh() {
+    fetch("/api/live-feed")
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var logs = d.logs || [];
+        var body = document.getElementById("liveBody");
+        if (body) {
+          body.innerHTML = logs.length
+            ? logs.map(buildRow).join("")
+            : "<tr><td colspan='11' class='empty-state'>No events yet — start the engine.</td></tr>";
+        }
+        // Pills
+        var total = logs.length;
+        var att   = logs.filter(function(l){return l.classification==="Attack";}).length;
+        var sus   = logs.filter(function(l){return l.classification==="Suspicious";}).length;
+        var nor   = logs.filter(function(l){return l.classification==="Normal";}).length;
+        var el;
+        el = document.getElementById("pillTotal");      if(el) el.textContent = total;
+        el = document.getElementById("pillAttack");     if(el) el.textContent = att;
+        el = document.getElementById("pillSuspicious"); if(el) el.textContent = sus;
+        el = document.getElementById("pillNormal");     if(el) el.textContent = nor;
+
+        var lr = document.getElementById("lastRefresh");
+        if(lr) lr.textContent = "Updated: " + new Date().toLocaleTimeString("en-US",{hour12:false});
+      }).catch(function(){});
+  }
+
+  window.toggleEngine = function() {
+    var url    = isRunning ? "/api/engine/stop" : "/api/engine/start";
+    var token  = document.querySelector("meta[name='csrf-token']");
+    fetch(url, {method:"POST", headers:{"X-CSRFToken": token ? token.content : ""}})
+      .then(function() {
+        isRunning = !isRunning;
+        var btn = document.getElementById("engineToggleBtn");
+        if (btn) {
+          btn.innerHTML = "<i class='bi bi-" + (isRunning?"stop-fill":"play-fill") + "'></i> " + (isRunning?"Stop":"Start") + " Engine";
+          btn.style.color = isRunning ? "var(--accent2)" : "var(--accent3)";
+        }
+      }).catch(function(){});
+  };
+
+  setInterval(refresh, 3000);
+  refresh();
+}());
+</script>
+{% endblock %}

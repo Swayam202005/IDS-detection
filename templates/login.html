@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — AI-IDS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="auth-page">
+
+  <!-- Animated grid BG -->
+  <div style="position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none"></div>
+
+  <!-- Glow -->
+  <div style="position:fixed;top:30%;left:50%;transform:translateX(-50%);width:400px;height:400px;background:radial-gradient(circle,rgba(0,200,255,0.06) 0%,transparent 70%);pointer-events:none"></div>
+
+  <div class="auth-box">
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon"><i class="bi bi-shield-shaded"></i></div>
+      <div>
+        <div class="auth-logo-text">AI-IDS</div>
+        <div class="auth-logo-sub">INTRUSION DETECTION SYSTEM</div>
+      </div>
+    </div>
+
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-subtitle">SIGN IN TO YOUR ACCOUNT</div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} ids-alert mb-3 py-2" style="font-size:12px">
+        <i class="bi bi-exclamation-circle-fill me-2"></i>{{ msg }}
+      </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="mb-3">
+        <label class="ids-label">Email Address</label>
+        <input type="email" name="email" class="ids-input"
+               placeholder="admin@ids.local" required
+               value="{{ request.form.get('email','') }}">
+      </div>
+
+      <div class="mb-4">
+        <label class="ids-label">Password</label>
+        <div style="position:relative">
+          <input type="password" name="password" id="pwField" class="ids-input"
+                 placeholder="••••••••" required style="padding-right:42px !important">
+          <button type="button" onclick="togglePw()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">
+            <i class="bi bi-eye" id="pwIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-ids-primary mb-4">
+        <i class="bi bi-box-arrow-in-right me-2"></i> SIGN IN
+      </button>
+
+      <div class="text-center">
+        <a href="{{ url_for('register') }}" class="auth-link">
+          Don't have an account? <span>Create one &rarr;</span>
+        </a>
+      </div>
+    </form>
+
+    <!-- Demo hint -->
+    <div style="margin-top:24px;padding:12px;background:rgba(0,200,255,0.05);border:1px solid rgba(0,200,255,0.1);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">
+      <div style="color:var(--accent);margin-bottom:4px;letter-spacing:1px">DEFAULT CREDENTIALS</div>
+      <div>Email: admin@ids.local</div>
+      <div>Password: Admin@1234</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePw() {
+  var f = document.getElementById("pwField");
+  var i = document.getElementById("pwIcon");
+  if (f.type === "password") {
+    f.type = "text"; i.className = "bi bi-eye-slash";
+  } else {
+    f.type = "password"; i.className = "bi bi-eye";
+  }
+}
+</script>
+</body>
+</html>

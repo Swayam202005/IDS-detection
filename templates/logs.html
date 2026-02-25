@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Detection Logs{% endblock %}
+{% block page_title %}<i class="bi bi-list-columns-reverse me-2" style="color:var(--accent)"></i>Detection Logs{% endblock %}
+
+{% block content %}
+
+<!-- Filter bar -->
+<div class="ids-card mb-3">
+  <form method="GET" action="{{ url_for('detection_logs') }}" class="d-flex gap-2 flex-wrap align-items-end">
+    <div style="flex:1;min-width:180px">
+      <label class="ids-label">Search</label>
+      <input type="text" name="search" class="ids-input" placeholder="IP address or attack type..."
+             value="{{ search }}">
+    </div>
+    <div style="min-width:140px">
+      <label class="ids-label">Classification</label>
+      <select name="type" class="ids-input ids-select">
+        <option value="">All Types</option>
+        <option value="Attack"     {% if filter_type=='Attack'     %}selected{% endif %}>Attack</option>
+        <option value="Suspicious" {% if filter_type=='Suspicious' %}selected{% endif %}>Suspicious</option>
+        <option value="Normal"     {% if filter_type=='Normal'     %}selected{% endif %}>Normal</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-ids-sm" style="color:var(--accent);border-color:rgba(0,200,255,0.3)">
+      <i class="bi bi-search"></i> Filter
+    </button>
+    <a href="{{ url_for('detection_logs') }}" class="btn-ids-sm">
+      <i class="bi bi-x"></i> Clear
+    </a>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="ids-card">
+  <div class="card-header-ids">
+    <span><i class="bi bi-table me-1"></i> DETECTION EVENTS ({{ pagination.total }})</span>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('download_logs') }}" class="btn-ids-sm" style="color:var(--accent3);border-color:rgba(0,232,122,0.3)">
+        <i class="bi bi-download"></i> CSV
+      </a>
+      {% if current_user.is_admin() %}
+      <form action="{{ url_for('clear_logs') }}" method="POST" onsubmit="return confirm('Clear ALL logs? This cannot be undone.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-ids-danger"><i class="bi bi-trash3"></i> Clear All</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ids-table-wrap">
+    <table class="ids-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Timestamp</th>
+          <th>Source IP</th>
+          <th>Dest IP</th>
+          <th>Protocol</th>
+          <th>Attack Type</th>
+          <th>Classification</th>
+          <th>Confidence</th>
+          <th>Risk Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="mono" style="color:var(--muted)">{{ log.id }}</td>
+          <td class="mono" style="color:var(--muted);font-size:11px">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else '—' }}</td>
+          <td class="mono" style="color:#fff">{{ log.source_ip }}</td>
+          <td class="mono">{{ log.dest_ip }}</td>
+          <td class="mono">{{ log.protocol or '—' }}</td>
+          <td>
+            <span class="badge-ids badge-attack" style="font-size:9px">{{ log.attack_type }}</span>
+          </td>
+          <td>
+            <span class="badge-ids
+              {% if log.classification == 'Attack' %}badge-attack
+              {% elif log.classification == 'Suspicious' %}badge-suspicious
+              {% else %}badge-normal{% endif %}">
+              {{ log.classification }}
+            </span>
+          </td>
+          <td class="mono">{{ "%.1f"|format(log.confidence * 100) }}%</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="width:50px;height:4px;background:var(--border);border-radius:2px">
+                <div style="height:100%;width:{{ log.risk_score }}%;background:{% if log.risk_score >= 70 %}var(--accent2){% elif log.risk_score >= 40 %}var(--accent4){% else %}var(--accent3){% endif %};border-radius:2px"></div>
+              </div>
+              <span class="mono" style="font-size:11px;
+                {% if log.risk_score >= 70 %}color:var(--accent2)
+                {% elif log.risk_score >= 40 %}color:var(--accent4)
+                {% else %}color:var(--accent3){% endif %}">
+                {{ log.risk_score }}
+              </span>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="empty-state">
+            <i class="bi bi-inbox me-2"></i>
+            {% if search or filter_type %}No results matching your filter.{% else %}No logs yet.{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination.pages > 1 %}
+  <div class="d-flex justify-content-center mt-3">
+    <ul class="pagination pagination-sm mb-0">
+      {% if pagination.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('detection_logs', page=pagination.prev_num, search=search, type=filter_type) }}">&laquo;</a>
+      </li>
+      {% endif %}
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          <li class="page-item {% if p == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('detection_logs', page=p, search=search, type=filter_type) }}">{{ p }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+      {% if pagination.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('detection_logs', page=pagination.next_num, search=search, type=filter_type) }}">&raquo;</a>
+      </li>
+      {% endif %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

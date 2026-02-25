@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}<i class="bi bi-people-fill me-2" style="color:var(--accent)"></i>User Management{% endblock %}
+
+{% block content %}
+<div class="ids-card">
+  <div class="card-header-ids">
+    <span><i class="bi bi-people me-1"></i> REGISTERED USERS ({{ users|length }})</span>
+    <a href="{{ url_for('register') }}" class="btn-ids-sm" style="color:var(--accent3);border-color:rgba(0,232,122,0.3)">
+      <i class="bi bi-person-plus-fill"></i> New User
+    </a>
+  </div>
+
+  <div class="ids-table-wrap">
+    <table class="ids-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>User</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td class="mono" style="color:var(--muted)">{{ user.id }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:30px;height:30px;background:linear-gradient(135deg,var(--accent),#0055aa);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">
+                {{ user.username[0].upper() }}
+              </div>
+              <span style="font-weight:600;color:#fff">{{ user.username }}</span>
+            </div>
+          </td>
+          <td class="mono" style="color:var(--muted);font-size:12px">{{ user.email }}</td>
+          <td>
+            <span class="badge-ids {% if user.role == 'admin' %}badge-admin{% else %}badge-user{% endif %}">
+              {{ user.role.upper() }}
+            </span>
+          </td>
+          <td>
+            <span class="badge-ids {% if user.is_active %}badge-normal{% else %}badge-attack{% endif %}">
+              {{ 'ACTIVE' if user.is_active else 'DISABLED' }}
+            </span>
+          </td>
+          <td class="mono" style="font-size:11px;color:var(--muted)">
+            {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '—' }}
+          </td>
+          <td>
+            {% if user.id != current_user.id %}
+            <form action="{{ url_for('toggle_user', uid=user.id) }}" method="POST" style="display:inline"
+                  onsubmit="return confirm('Toggle account status for {{ user.username }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="{% if user.is_active %}btn-ids-danger{% else %}btn-ids-sm{% endif %}"
+                      style="{% if not user.is_active %}color:var(--accent3);border-color:rgba(0,232,122,0.3){% endif %}">
+                <i class="bi bi-{% if user.is_active %}person-dash{% else %}person-check{% endif %}-fill"></i>
+                {{ 'Disable' if user.is_active else 'Enable' }}
+              </button>
+            </form>
+            {% else %}
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">YOU</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty-state"><i class="bi bi-inbox me-2"></i>No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

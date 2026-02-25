@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}User Activity{% endblock %}
+{% block page_title %}<i class="bi bi-person-lines-fill me-2" style="color:var(--accent)"></i>User Activity Log{% endblock %}
+
+{% block content %}
+<div class="ids-card">
+  <div class="card-header-ids">
+    <span><i class="bi bi-clock-history me-1"></i>
+      {% if current_user.is_admin() %}ALL USER ACTIVITY{% else %}MY ACTIVITY{% endif %}
+      ({{ logs|length }} records)
+    </span>
+  </div>
+
+  <div class="ids-table-wrap">
+    <table class="ids-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          {% if current_user.is_admin() %}<th>Username</th>{% endif %}
+          <th>Action</th>
+          <th>Login Time</th>
+          <th>Logout Time</th>
+          <th>Duration</th>
+          <th>IP Address</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="mono" style="color:var(--muted)">{{ log.id }}</td>
+          {% if current_user.is_admin() %}
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:26px;height:26px;background:linear-gradient(135deg,var(--accent),#0055aa);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">
+                {{ log.username[0].upper() if log.username != '—' else '?' }}
+              </div>
+              <span class="mono" style="color:#fff">{{ log.username }}</span>
+            </div>
+          </td>
+          {% endif %}
+          <td>
+            <span class="badge-ids {% if log.action == 'LOGIN' %}badge-normal{% else %}badge-suspicious{% endif %}">
+              {{ log.action }}
+            </span>
+          </td>
+          <td class="mono" style="font-size:11px;color:var(--muted)">{{ log.login_time }}</td>
+          <td class="mono" style="font-size:11px;color:{% if log.logout_time == 'Active' %}var(--accent3){% else %}var(--muted){% endif %}">
+            {% if log.logout_time == 'Active' %}
+              <span class="live-dot" style="width:6px;height:6px;margin-right:4px"></span>
+            {% endif %}
+            {{ log.logout_time }}
+          </td>
+          <td class="mono" style="font-size:11px;color:var(--muted)">{{ log.duration }}</td>
+          <td class="mono" style="font-size:11px;color:var(--muted)">{{ log.ip_address }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="{{ 7 if current_user.is_admin() else 6 }}" class="empty-state">
+            <i class="bi bi-inbox me-2"></i>No activity recorded yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

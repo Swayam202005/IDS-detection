@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Statistics{% endblock %}
+{% block page_title %}<i class="bi bi-bar-chart-line-fill me-2" style="color:var(--accent)"></i>Attack Statistics{% endblock %}
+
+{% block content %}
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card blue">
+      <div class="stat-icon"><i class="bi bi-database-fill"></i></div>
+      <div class="stat-num">{{ total }}</div>
+      <div class="stat-label">Total Events</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card red">
+      <div class="stat-icon"><i class="bi bi-shield-x-fill"></i></div>
+      <div class="stat-num">{{ attacks }}</div>
+      <div class="stat-label">Attacks</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card yellow">
+      <div class="stat-icon"><i class="bi bi-percent"></i></div>
+      <div class="stat-num">{{ attack_rate }}%</div>
+      <div class="stat-label">Attack Rate</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card green">
+      <div class="stat-icon"><i class="bi bi-shield-check-fill"></i></div>
+      <div class="stat-num">{{ total - attacks }}</div>
+      <div class="stat-label">Clean Traffic</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <!-- Attack Type Distribution — Doughnut -->
+  <div class="col-12 col-xl-5">
+    <div class="ids-card h-100">
+      <div class="card-header-ids">
+        <span><i class="bi bi-pie-chart-fill me-1"></i> ATTACK TYPE DISTRIBUTION</span>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="attackTypeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Classification breakdown — Bar -->
+  <div class="col-12 col-xl-4">
+    <div class="ids-card h-100">
+      <div class="card-header-ids">
+        <span><i class="bi bi-bar-chart-fill me-1"></i> CLASSIFICATION BREAKDOWN</span>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="clsBarChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hourly trend -->
+  <div class="col-12 col-xl-3">
+    <div class="ids-card h-100">
+      <div class="card-header-ids">
+        <span><i class="bi bi-clock-history me-1"></i> 24H HOURLY TREND</span>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="hourlyChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script id="byTypeJson"   type="application/json">{{ by_type   | safe }}</script>
+<script id="byClsJson"    type="application/json">{{ by_cls    | safe }}</script>
+<script id="hourlyLabels" type="application/json">{{ hourly_labels | safe }}</script>
+<script id="hourlyData"   type="application/json">{{ hourly_data   | safe }}</script>
+<script>
+(function(){
+  var COLORS = ["#00c8ff","#ff3a5c","#00e87a","#ffb800","#9d6eff","#ff6b35","#00bfff"];
+  Chart.defaults.color = "#4a6070";
+  Chart.defaults.font.family = "'JetBrains Mono',monospace";
+
+  var byType   = JSON.parse(document.getElementById("byTypeJson").textContent   || "{}");
+  var byCls    = JSON.parse(document.getElementById("byClsJson").textContent    || "{}");
+  var hLabels  = JSON.parse(document.getElementById("hourlyLabels").textContent || "[]");
+  var hData    = JSON.parse(document.getElementById("hourlyData").textContent   || "[]");
+
+  var ttCfg = {
+    backgroundColor:"#0d1520", borderColor:"#1e2f3f", borderWidth:1,
+    titleColor:"#00c8ff", bodyColor:"#d0e4f0"
+  };
+
+  // Doughnut
+  new Chart(document.getElementById("attackTypeChart"), {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(byType),
+      datasets: [{
+        data: Object.values(byType),
+        backgroundColor: COLORS.map(c => c + "bb"),
+        borderColor: COLORS, borderWidth:2, hoverOffset:8
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, cutout:"60%",
+      plugins:{legend:{position:"bottom",labels:{color:"#4a6070",font:{size:10},padding:10,usePointStyle:true}},tooltip:{...ttCfg}}
+    }
+  });
+
+  // Classification bar
+  var clsColors = {"Attack":"#ff3a5cbb","Suspicious":"#ffb800bb","Normal":"#00e87abb"};
+  new Chart(document.getElementById("clsBarChart"), {
+    type: "bar",
+    data: {
+      labels: Object.keys(byCls),
+      datasets: [{
+        label: "Events",
+        data: Object.values(byCls),
+        backgroundColor: Object.keys(byCls).map(k => clsColors[k] || "#00c8ffbb"),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, indexAxis:"y",
+      plugins:{legend:{display:false},tooltip:{...ttCfg}},
+      scales:{
+        x:{grid:{color:"#1e2f3f"},ticks:{color:"#4a6070"}},
+        y:{grid:{color:"#1e2f3f"},ticks:{color:"#d0e4f0",font:{size:11}}}
+      }
+    }
+  });
+
+  // Hourly line
+  var grad = document.getElementById("hourlyChart").getContext("2d").createLinearGradient(0,0,0,250);
+  grad.addColorStop(0,   "rgba(0,200,255,0.4)");
+  grad.addColorStop(1,   "rgba(0,200,255,0)");
+  new Chart(document.getElementById("hourlyChart"), {
+    type: "line",
+    data: {
+      labels: hLabels.length ? hLabels : ["00:00"],
+      datasets:[{
+        label:"Alerts",
+        data: hData.length ? hData : [0],
+        borderColor:"#00c8ff", borderWidth:2,
+        backgroundColor: grad,
+        tension:0.4, fill:true,
+        pointBackgroundColor:"#00c8ff", pointRadius:3
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...ttCfg}},
+      scales:{
+        x:{grid:{color:"#1e2f3f"},ticks:{color:"#4a6070",font:{size:9},maxRotation:45}},
+        y:{beginAtZero:true,grid:{color:"#1e2f3f"},ticks:{color:"#4a6070",precision:0}}
+      }
+    }
+  });
+}());
+</script>
+{% endblock %}
