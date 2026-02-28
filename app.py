@@ -1,5 +1,5 @@
 """
-app.py — AI-Based Intrusion Detection System
+app.py — Based Intrusion Detection System
 Main Flask application with all routes.
 """
 
@@ -555,7 +555,7 @@ def _seed_demo_logs(n=40):
 if __name__ == "__main__":
     init_db()
     print("\n╔════════════════════════════════════════╗")
-    print("   AI-IDS  →  http://localhost:5000")
+    print("   IDS  →  http://localhost:5000")
     print("   Admin:   admin@ids.local / Admin@1234")
     print("╚════════════════════════════════════════╝\n")
     app.run(debug=True, use_reloader=False)

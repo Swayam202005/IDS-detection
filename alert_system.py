@@ -37,7 +37,7 @@ A high-risk network intrusion has been detected.
 Immediate investigation recommended.
 
 ----------------------------------------------
-AI-IDS Automated Alert System
+IDS Automated Alert System
 """
         with app.app_context():
             msg = Message(subject=subject, recipients=[recipient], body=body)

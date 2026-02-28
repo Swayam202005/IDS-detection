@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-model_training.py — Train ML models for AI-IDS
+model_training.py — Train ML models for IDS
 ================================================
 Usage:
     python model_training.py
@@ -282,7 +282,7 @@ def save_model_comparison(results):
 def train(data_path=None):
     """Train all models, pick the best, save artifacts and plots."""
     print("\n╔══════════════════════════════════════════╗")
-    print("   AI-IDS — Model Trainer v2.0")
+    print("   IDS — Model Trainer v2.0")
     print("╚══════════════════════════════════════════╝\n")
 
     # ── Load data ─────────────────────────────────────────────────────────────
